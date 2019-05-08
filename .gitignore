@@ -3,3 +3,5 @@
 ################################################################################
 
 /NetNote/bin/Debug/netcoreapp2.2
+/NetNote/obj
+/.vs/NetNote/v16/Server/sqlite3

@@ -6,10 +6,14 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.HttpsPolicy;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using NetNote.Middleware;
+using NetNote.Models;
 using NetNote.Services;
 
 namespace NetNote
@@ -28,6 +32,9 @@ namespace NetNote
         {
             var connection = Configuration["ConnectionString"];
             services.AddDbContext<NoteContext>(options => options.UseSqlServer(connection));
+            services.AddIdentity<NoteUser, IdentityRole>()
+                .AddEntityFrameworkStores<NoteContext>()
+                .AddDefaultTokenProviders();
             services.Configure<CookiePolicyOptions>(options =>
             {
                 // This lambda determines whether user consent for non-essential cookies is needed for a given request.
@@ -39,11 +46,20 @@ namespace NetNote
             services.AddScoped<INoteTypeRepository, NoteTypeRepository>();
 
             services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_2);
+
+            services.Configure<IdentityOptions>(options =>
+            {
+                options.Password.RequireNonAlphanumeric = false;
+                options.Password.RequireUppercase = false;
+            });
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
-        public void Configure(IApplicationBuilder app, IHostingEnvironment env)
+        public void Configure(IApplicationBuilder app, IHostingEnvironment env,ILoggerFactory loggerFactory)
         {
+            InitData(app.ApplicationServices);
+            loggerFactory.AddConsole(Configuration.GetSection("Logging"));
+            loggerFactory.AddDebug();
             if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
@@ -55,6 +71,8 @@ namespace NetNote
                 app.UseHsts();
             }
 
+            app.UseAuthentication();
+
             app.UseHttpsRedirection();
             app.UseStaticFiles();
             app.UseCookiePolicy();
@@ -63,8 +81,29 @@ namespace NetNote
             {
                 routes.MapRoute(
                     name: "default",
-                    template: "{controller=Note}/{action=Index}/{id?}");
+                    template: "{controller=Account}/{action=Login}/{id?}");
             });
+        }
+        private void InitData(IServiceProvider serviceProvider)
+        {
+            using (var serviceScope = serviceProvider.GetRequiredService<IServiceScopeFactory>().CreateScope())
+            {
+                //获取注入的NoteContext
+                var db = serviceScope.ServiceProvider.GetService<NoteContext>();
+                db.Database.EnsureCreated(); //如果数据库不存在则创建，存在则不做操作
+                if(db.NoteTypes.Count()==0)
+                {
+                    var noteTypes = new List<NoteType>
+                    {
+                        new NoteType{Name="日常记录"},
+                        new NoteType{Name="代码收藏"},
+                        new NoteType{Name="消费记录"},
+                        new NoteType{Name="网站收藏"}
+                    };
+                    db.NoteTypes.AddRange(noteTypes);
+                    db.SaveChanges();
+                }
+            }
         }
     }
 }

@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using NetNote.Models;
 using System;
 using System.Collections.Generic;
@@ -7,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace NetNote
 {
-    public class NoteContext:DbContext
+    public class NoteContext:IdentityDbContext<NoteUser>
     {
         public NoteContext(DbContextOptions<NoteContext> options) :base(options)
         {

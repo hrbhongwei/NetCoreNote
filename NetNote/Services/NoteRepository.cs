@@ -34,6 +34,8 @@ namespace NetNote.Services
         {
             var query = _context.Notes.Include(type => type.Type).AsQueryable();
             var count = query.Count();
+            if(count<= pageindex)
+                return new Tuple<List<Note>, int>(query.ToList(), count);
             var pagecount = count % pagesize == 0 ? count / pagesize : count / pagesize + 1;
             var notes = query.OrderByDescending(r => r.Create)
                 .Skip((pageindex - 1) * pagesize)

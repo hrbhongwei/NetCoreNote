@@ -20,9 +20,15 @@ namespace NetNote
 {
     public class Startup
     {
-        public Startup(IConfiguration configuration)
+        public Startup(IConfiguration configuration, IHostingEnvironment env)
         {
             Configuration = configuration;
+            var builder = new ConfigurationBuilder()
+                .SetBasePath(env.ContentRootPath)
+                .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
+                .AddJsonFile($"appsettings.{env.EnvironmentName}.json", optional: true)
+                .AddEnvironmentVariables();
+            Configuration = builder.Build();
         }
 
         public IConfiguration Configuration { get; }
@@ -30,8 +36,8 @@ namespace NetNote
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
-            var connection = Configuration["ConnectionString"];
-            services.AddDbContext<NoteContext>(options => options.UseSqlServer(connection));
+            //var connection = Configuration["ConnectionString"];
+            services.AddDbContext<NoteContext>(options => options.UseSqlServer(@"Server=47.94.170.75,1433;Database=NoteDb;User Id=sa;Password=Hongwei,.123;"));
             services.AddIdentity<NoteUser, IdentityRole>()
                 .AddEntityFrameworkStores<NoteContext>()
                 .AddDefaultTokenProviders();
